@@ -6,17 +6,21 @@ import 'package:flame/experimental.dart';
 import 'package:klondike/klondike_game.dart';
 import 'rank.dart';
 import 'suit.dart';
+import 'package:klondike/components/pile.dart';
 
 class Card extends PositionComponent with DragCallbacks {
   Card(int intRank, int intSuit)
       : rank = Rank.of(intRank),
         suit = Suit.fromInt(intSuit),
         _faceUp = false,
+        _isDragging = false,
         super(size: KlondikeGame.cardSize);
 
+  Pile? pile;
   final Rank rank;
   final Suit suit;
   bool _faceUp;
+  bool _isDragging;
 
   bool get isFaceUp => _faceUp;
   bool get isFaceDown => !_faceUp;
@@ -181,11 +185,40 @@ class Card extends PositionComponent with DragCallbacks {
 
   @override
   void onDragStart(DragStartEvent event) {
-    priority = 100;
+    if (pile?.canMoveCard(this) ?? false) {
+      _isDragging = true;
+      priority = 100;
+    }
+  }
+
+  @override
+  void onDragEnd(DragEndEvent event) {
+    if (!_isDragging) {
+      return;
+    }
+
+    _isDragging = false;
+
+    final dropPiles = parent!
+        .componentsAtPoint(position + size / 2)
+        .whereType<Pile>()
+        .toList();
+
+    if (dropPiles.isNotEmpty) {
+      if (dropPiles.first.canAcceptCard(this)) {
+        pile!.removeCard(this);
+        dropPiles.first.acquireCard(this);
+        return;
+      }
+    }
+    pile!.returnCard(this);
   }
 
   @override
   void onDragUpdate(DragUpdateEvent event) {
+    if (!_isDragging) {
+      return;
+    }
     final cameraZoom = (findGame()! as FlameGame)
         .firstChild<CameraComponent>()!
         .viewfinder

@@ -6,7 +6,7 @@ import 'package:flame/components.dart';
 import 'package:klondike/components/waste.dart';
 import 'package:klondike/components/stock.dart';
 import 'package:klondike/components/foundation.dart';
-import 'package:klondike/components/pile.dart';
+import 'package:klondike/components/tableau.dart';
 import 'package:klondike/components/card/card.dart';
 
 class KlondikeGame extends FlameGame

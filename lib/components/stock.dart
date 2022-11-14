@@ -4,20 +4,39 @@ import 'package:flame/components.dart';
 import 'package:klondike/components/card/card.dart';
 import 'package:klondike/klondike_game.dart';
 import 'waste.dart';
+import 'pile.dart';
 
-class StockPile extends PositionComponent with TapCallbacks {
+class StockPile extends PositionComponent with TapCallbacks implements Pile {
   StockPile({super.position}) : super(size: KlondikeGame.cardSize);
 
   // Which cards are currently placed onto this pile. The first card in the
   // list is at the bottom, the last card is on top.
   final List<Card> _cards = [];
 
+  @override
+  bool canMoveCard(Card card) => false;
+
+  @override
   void acquireCard(Card card) {
     assert(!card.isFaceUp);
     card.position = position;
     card.priority = _cards.length;
+    card.pile = this;
     _cards.add(card);
   }
+
+  @override
+  bool canAcceptCard(Card card) {
+    return false;
+  }
+
+  @override
+  void removeCard(Card card) =>
+      throw StateError('cannot remove cards from here');
+
+  @override
+  void returnCard(Card card) =>
+      throw StateError('cannot remove cards from here');
 
   @override
   bool get debugMode => true;
