@@ -1,11 +1,13 @@
 import 'dart:math';
 import 'dart:ui';
+import 'package:flame/game.dart';
 import 'package:flame/components.dart';
+import 'package:flame/experimental.dart';
 import 'package:klondike/klondike_game.dart';
 import 'rank.dart';
 import 'suit.dart';
 
-class Card extends PositionComponent {
+class Card extends PositionComponent with DragCallbacks {
   Card(int intRank, int intSuit)
       : rank = Rank.of(intRank),
         suit = Suit.fromInt(intSuit),
@@ -17,6 +19,7 @@ class Card extends PositionComponent {
   bool _faceUp;
 
   bool get isFaceUp => _faceUp;
+  bool get isFaceDown => !_faceUp;
   void flip() => _faceUp = !_faceUp;
 
   @override
@@ -32,19 +35,27 @@ class Card extends PositionComponent {
   }
 
   void _renderFront(Canvas canvas) {
+    // background
     canvas.drawRRect(cardRRect, frontBackgroundPaint);
+
+    // border
     canvas.drawRRect(
       cardRRect,
       suit.isRed ? redBorderPaint : blackBorderPaint,
     );
 
+    // the proper sprite for the rank
     final rankSprite = suit.isBlack ? rank.blackSprite : rank.redSprite;
+
+    // draw the corner graphics for the cards
     final suitSprite = suit.sprite;
     _drawSprite(canvas, rankSprite, 0.1, 0.08);
     _drawSprite(canvas, rankSprite, 0.1, 0.08, rotate: true);
     _drawSprite(canvas, suitSprite, 0.1, 0.18, scale: 0.5);
     _drawSprite(canvas, suitSprite, 0.1, 0.18, scale: 0.5, rotate: true);
+    // END - draw the corner graphics for the cards
 
+    // draw the center graphics for the cards
     switch (rank.value) {
       case 1:
         _drawSprite(canvas, suitSprite, 0.5, 0.5, scale: 2.5);
@@ -148,21 +159,38 @@ class Card extends PositionComponent {
     double scale = 1,
     bool rotate = false,
   }) {
+    // rotate the canvas
     if (rotate) {
       canvas.save();
       canvas.translate(size.x / 2, size.y / 2);
       canvas.rotate(pi);
       canvas.translate(-size.x / 2, -size.y / 2);
     }
+
     sprite.render(
       canvas,
       position: Vector2(relativeX * size.x, relativeY * size.y),
       anchor: Anchor.center,
       size: sprite.srcSize.scaled(scale),
     );
+
     if (rotate) {
       canvas.restore();
     }
+  }
+
+  @override
+  void onDragStart(DragStartEvent event) {
+    priority = 100;
+  }
+
+  @override
+  void onDragUpdate(DragUpdateEvent event) {
+    final cameraZoom = (findGame()! as FlameGame)
+        .firstChild<CameraComponent>()!
+        .viewfinder
+        .zoom;
+    position += event.delta / cameraZoom;
   }
 
   static final Paint backBackgroundPaint = Paint()
@@ -178,20 +206,24 @@ class Card extends PositionComponent {
     ..style = PaintingStyle.stroke
     ..strokeWidth = 35;
 
+  // the static rectangle that can be used for the card
   static final RRect cardRRect = RRect.fromRectAndRadius(
     KlondikeGame.cardSize.toRect(),
     const Radius.circular(KlondikeGame.cardRadius),
   );
 
   static final RRect backRRectInner = cardRRect.deflate(40);
+
   static final Sprite flameSprite = klondikeSprite(1367, 6, 357, 501);
 
   static final Paint frontBackgroundPaint = Paint()
     ..color = const Color(0xff000000);
+
   static final Paint redBorderPaint = Paint()
     ..color = const Color(0xffece8a3)
     ..style = PaintingStyle.stroke
     ..strokeWidth = 10;
+
   static final Paint blackBorderPaint = Paint()
     ..color = const Color(0xff7ab2e8)
     ..style = PaintingStyle.stroke
